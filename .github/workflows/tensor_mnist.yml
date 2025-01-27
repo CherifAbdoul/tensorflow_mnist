@@ -1,4 +1,4 @@
-
+name: Tensorflow
 
 env:
   DOCKER_USER: ${{secrets.USER_NAME}}
@@ -14,43 +14,31 @@ on:
   pull_request:
     branches:
       - main
-      - develop
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      # Checkout the code
-      - name: Checkout code
+      - name: Checkout Repository
         uses: actions/checkout@v4
-      
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Build Docker Image
         run: docker build . -t tensor_mnist
 
-      # Set up Python
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-        
-      # Cache Python dependencies
-      - name: Cache Python dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+      - name: List of Docker images
+        run: docker image ls
 
-      # Install dependencies
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+      - name: Run Docker Container
+        run: docker run -d -p 5000:5000 tensor_mnist
+
+      - name: List of Docker -a AFTER
+        run: docker ps -a  
+
+      - name: List of Docker -q AFTER
+        run: docker ps --filter "ancestor=tensor_mnist" -q
 
       - name: docker login
         run: | # log into docker hub account
