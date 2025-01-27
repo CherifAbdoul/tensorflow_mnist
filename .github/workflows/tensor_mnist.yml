@@ -3,7 +3,7 @@
 env:
   DOCKER_USER: ${{secrets.USER_NAME}}
   DOCKER_PASSWORD: ${{secrets.PASSWORD}}
-  DOCKER_REPO_NAME: 'tensorflow_mnist'
+  DOCKER_REPO_NAME: ${{secrets.DOCKER_REPO_NAME}}
   BUILD_NAME: 'tensor_mnist'
 
 on:
