@@ -1,0 +1,72 @@
+
+
+env:
+  DOCKER_USER: ${{secrets.USER_NAME}}
+  DOCKER_PASSWORD: ${{secrets.PASSWORD}}
+  BUILD_NAME: 'tensor_mnist'
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the code
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Image
+        run: docker build . -t $BUILD_NAME
+
+      - name: List of Docker images
+        run: docker image ls
+
+      # Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+        
+      # Cache Python dependencies
+      - name: Cache Python dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # Install dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: docker login
+        run: | # log into docker hub account
+          docker login -u $DOCKER_USER -p $DOCKER_PASSWORD  
+          
+      - name: Get current date # get the date of the build
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y-%m-%d--%M-%S')"
+
+      - name: Build the Docker image # push The image to the docker hub
+        run: docker build . --file Dockerfile --tag $DOCKER_USER/$DOCKER_REPO_NAME:$BUILD_NAME-${{ steps.date.outputs.date }}
+
+      - name: Docker Push
+        run: docker push $DOCKER_USER/$DOCKER_REPO_NAME:$BUILD_NAME-${{ steps.date.outputs.date }}
+        
+      - name: Stop Docker Container
+        run: docker stop $(docker ps --filter "ancestor=$BUILD_NAME" -q)
